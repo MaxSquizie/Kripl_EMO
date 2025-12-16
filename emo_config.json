@@ -1,0 +1,126 @@
+{
+  "_comment": "Kripl EMO v3 — stable PAD, better labels, realistic burst vs mood, local-only",
+
+  "paths": {
+    "local_model_dir": "C:\\AI\\emo_model",
+    "log_dir": "C:\\Users\\Ilya\\PycharmProjects\\Cripl\\Cripl\\EMO\\logs"
+  },
+
+  "backend": {
+    "device": "cuda",
+    "min_top_prob": 0.40,
+    "entropy_neutral": 0.96,
+    "temp_mix": 1.30,
+    "neutral_weight": 0.20,
+    "use_top_only": false,
+    "topk": 5
+  },
+
+  "persona": {
+    "baseline_PAD": { "P": 0.1, "A": 0.1, "D": 0.1 }
+  },
+
+  "empathy": {
+    "_comment": "ΔPAD_K = W * (E • pad_user); mood_follow_user — слабое долгосрочное следование",
+    "W_empathy": 0.70,
+    "burst_gain": 2.0,
+    "mood_gain": 1.6,
+    "E": {
+      "P_from_P": 0.80, "P_from_A": 0.00, "P_from_D": 0.10,
+      "A_from_P": 0.15, "A_from_A": 0.60, "A_from_D": 0.05,
+      "D_from_P": 0.05, "D_from_A": 0.10, "D_from_D": 0.45
+    },
+    "mood_follow_user": 0.10
+  },
+  "mood_evidence": {
+    "_comment": "Медленный интегратор внешнего сигнала → устойчивый сдвиг mood",
+    "gain": 0.25,
+    "half_life_s": 180.0,
+    "clip": 0.30,
+    "context_scale": 0.6
+  },
+  "time": {
+    "_comment": "секунды",
+    "burst_half_life_s": 12.0,
+    "burst_rise_tau_s": 0.35,
+
+    "mood_decay_half_life_s": 2400.0,
+    "mood_rise_tau_s": 28.0,
+
+    "beta_base": 0.42,
+    "beta_entropy_gain": 0.45,
+    "beta_burst_gain": 0.48,
+    "beta_burst_half_life_s": 4.0,
+    "beta_base_idle": 0.08,
+
+    "hold_seconds": 2.5,
+    "hold_beta": 0.90,
+    "post_hold_tau_s": 3.5,
+
+    "beta_impulse_gain": 0.30,
+    "beta_impulse_half_life_s": 1.5,
+
+    "refractory_s": 4.0,
+    "refractory_hold_scale": 0.70,
+    "refractory_beta_scale": 0.80
+  },
+
+  "layers": {
+    "burst_clip": 0.85,
+    "mood_clip": 0.50,
+    "pad_bounds": 1.0
+  },
+
+  "limits": {
+    "pad_clip_per_step": 0.60,
+    "min_pad_norm_for_label": 0.08
+  },
+
+  "labeling": {
+    "mode": "mahal",
+    "min_pad_norm": 0.08,
+    "hysteresis": 0.07
+  },
+
+  "calibration": {
+    "_comment": "Аффинная калибровка PAD: PAD' = A*PAD + b (подгон под RU-модель)",
+    "A": [[1.00, 0.00, 0.00],
+          [0.00, 1.08, 0.04],
+          [0.00, -0.03, 1.05]],
+    "b": [0.00, 0.00, 0.00]
+  },
+
+  "realism": {
+    "label_hysteresis": 0.07,
+    "context_factor_base": 0.85,
+    "domain_bias": {
+      "task":   {"P": 0.00, "A":  0.05, "D":  0.02},
+      "social": {"P": 0.04, "A": -0.02, "D":  0.03},
+      "meta":   {"P": 0.00, "A":  0.00, "D":  0.00}
+    },
+    "fatigue": {
+      "threshold_A": 0.40,
+      "gain_per_sec": 0.015,
+      "relax_half_life_s": 900.0,
+      "impact": {"A": -0.30, "P": -0.05, "D": -0.10}
+    },
+    "micro_noise_std": 0.015,
+    "multi_trigger": true
+  },
+
+  "pad_protos": {
+    "_comment": "Multi-centroid PAD (means + diag-covs). При отсутствии — fallback на дефолт.",
+    "neutral":        { "means": [[ 0.00,  0.00,  0.00]], "covs": [[0.10, 0.10, 0.10]] },
+    "joy":            { "means": [[ 0.60,  0.35,  0.25]], "covs": [[0.05, 0.05, 0.05]] },
+    "admiration":     { "means": [[ 0.52,  0.32,  0.28]], "covs": [[0.05, 0.05, 0.05]] },
+    "gratitude":      { "means": [[ 0.58,  0.28,  0.20]], "covs": [[0.05, 0.05, 0.05]] },
+    "approval":       { "means": [[ 0.40,  0.20,  0.15]], "covs": [[0.05, 0.05, 0.05]] },
+    "realization":    { "means": [[ 0.10,  0.12,  0.05]], "covs": [[0.06, 0.06, 0.06]] },
+    "confusion":      { "means": [[-0.05,  0.15, -0.05]], "covs": [[0.06, 0.06, 0.06]] },
+    "disappointment": { "means": [[-0.40, -0.20,  0.00]], "covs": [[0.06, 0.06, 0.06]] },
+    "sadness":        { "means": [[-0.55, -0.30, -0.40], [-0.45, -0.20, -0.35]], "covs": [[0.06,0.04,0.05],[0.05,0.05,0.05]] },
+    "fear":           { "means": [[-0.50,  0.40, -0.45]], "covs": [[0.05, 0.06, 0.06]] },
+    "anger":          { "means": [[-0.50,  0.45,  0.30]], "covs": [[0.06, 0.06, 0.06]] },
+    "disgust":        { "means": [[-0.45,  0.20,  0.15]], "covs": [[0.06, 0.06, 0.06]] }
+  }
+}
